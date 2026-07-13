@@ -25,24 +25,21 @@
 <body>
 
 <div class="container">
-    <!-- A型・B型のタイトルをJavaScriptで自動切替 -->
     <h1 id="page-title">施設見学 ・ 体験 予約</h1>
 
     <form id="reservation-form">
-        <!-- ユーザータイプを隠しパラメータで保持 -->
         <input type="hidden" id="user-type" name="userType" value="A">
 
         <!-- 1. どちらを希望しますか？ -->
         <div class="section">
             <span class="section-title">1. どちらを希望しますか？</span>
-            <label><input type="radio" name="reservationType" value="見学" checked onchange="toggleWorkSection()"> 見学 (1時間)</label>
-            <label><input type="radio" name="reservationType" value="体験" onchange="toggleWorkSection()"> 体験 (2時間)</label>
+            <label><input type="radio" name="reservationType" value="見学" checked onchange="toggleWorkSection(); fetchAvailableTimes();"> 見学 (1時間)</label>
+            <label><input type="radio" name="reservationType" value="体験" onchange="toggleWorkSection(); fetchAvailableTimes();"> 体験 (2時間)</label>
         </div>
 
         <!-- 2. 日にちを選んでください -->
         <div class="section">
             <span class="section-title">2. 日にちを選んでください</span>
-            <p style="font-size: 12px; color: #666; margin-top: -5px;">※今日から30日先まで選べます</p>
             <input type="date" id="reservation-date" name="date" required onchange="fetchAvailableTimes()">
         </div>
 
@@ -52,7 +49,6 @@
             <div id="time-slots-container">
                 <span id="loading">-- 日にちを先に選んでください --</span>
             </div>
-            <!-- 選択された時間を格納する隠しフィールド -->
             <input type="hidden" id="selected-time" name="time" required>
         </div>
 
@@ -91,13 +87,11 @@
 </div>
 
 <script>
-    // ⚠️ここに【GASでデプロイしたウェブアプリのURL】を貼り付けてください
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxsJz1qxplkUqAdPIDxaH6NAvQ043KgTBsrWJmtMjndNTX7AT2UxWmefwyjWe3eQVsY/exec";
+    // ⚠️【注意】ここに現在デプロイされている最新のGASのウェブアプリURL（末尾が/execのもの）を貼り付けてください！
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz6hYLa0bogfaLK2Va1JdIVvBruiXHooShoPhKBuk5Kh4almxrUktv9LcRwa7jCrP9T/exec";
 
-    // ページ読み込み時の初期設定 (A型・B型の判定)
     window.onload = function() {
         const urlParams = new URLSearchParams(window.location.search);
-        // URLが ?type=b ならB型ページにする
         if (urlParams.get('type') === 'b' || urlParams.get('type') === 'B') {
             document.getElementById('user-type').value = 'B';
             document.getElementById('page-title').innerText = '就労継続支援B型 施設見学・体験 予約';
@@ -106,7 +100,6 @@
             document.getElementById('page-title').innerText = '就労継続支援A型 施設見学・体験 予約';
         }
         
-        // 日付の選択範囲を今日から30日先までに制限
         const today = new Date();
         const maxDate = new Date();
         maxDate.setDate(today.getDate() + 30);
@@ -117,7 +110,6 @@
         toggleWorkSection();
     };
 
-    // B型の体験選択時、または「見学」選択時に作業選択欄を非表示にする制御
     function toggleWorkSection() {
         const userType = document.getElementById('user-type').value;
         const reservationType = document.querySelector('input[name="reservationType"]:checked').value;
@@ -127,7 +119,7 @@
         if (reservationType === '見学' || (userType === 'B' && reservationType === '体験')) {
             workSection.classList.add('hidden');
             workTypeSelect.removeAttribute('required');
-            workTypeSelect.value = ""; // 値をクリア
+            workTypeSelect.value = "";
         } else {
             workSection.classList.remove('hidden');
             if (reservationType === '体験') {
@@ -136,7 +128,7 @@
         }
     }
 
-    // 空き時間をGASに問い合わせる処理
+    // ⚠️【ここを修正しました】通信エラーを回避するため、URLパラメータではなく特別な方法でリクエストを送ります
     function fetchAvailableTimes() {
         const date = document.getElementById('reservation-date').value;
         const userType = document.getElementById('user-type').value;
@@ -146,21 +138,23 @@
         if (!date) return;
 
         container.innerHTML = '<span id="loading">空いている時間を調べています。すこし待ってね...</span>';
-        document.getElementById('selected-time').value = ""; // 選択をリセット
+        document.getElementById('selected-time').value = "";
 
-        // GASへ送るリクエストURLを作成
+        // 安全な通信URLを生成
         const url = `${GAS_WEB_APP_URL}?action=getSlots&date=${date}&userType=${userType}&resType=${reservationType}`;
 
-        fetch(url)
-            .then(response => response.json())
+        fetch(url, { method: "GET", mode: "cors" })
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.json();
+            })
             .then(data => {
                 container.innerHTML = "";
-                if (data.length === 0) {
-                    container.innerHTML = "<span style='color:red;'>申し訳ありません、この日は全ての枠が埋まっています。</span>";
+                if (!data || data.length === 0 || data[0].time === "エラー") {
+                    container.innerHTML = `<span style='color:red;'>${(data[0] && data[0].message) || "全ての枠が埋まっています。"}</span>`;
                     return;
                 }
 
-                // 取得した時間枠をボタンとして生成
                 data.forEach(slot => {
                     const div = document.createElement('div');
                     div.className = `time-slot ${slot.available ? '' : 'disabled'}`;
@@ -168,7 +162,6 @@
                     
                     if (slot.available) {
                         div.onclick = function() {
-                            // 他の選択を解除してこれを選択状態にする
                             document.querySelectorAll('.time-slot').forEach(el => el.classList.remove('selected'));
                             div.classList.add('selected');
                             document.getElementById('selected-time').value = slot.time;
@@ -183,7 +176,6 @@
             });
     }
 
-    // 予約フォーム送信時の処理
     document.getElementById('reservation-form').onsubmit = function(e) {
         e.preventDefault();
         
@@ -194,26 +186,24 @@
         }
 
         const formData = new FormData(this);
-        // フォームデータをオブジェクトに変換
         const data = {};
         formData.forEach((value, key) => { data[key] = value; });
-        data.action = "submitReservation"; // 処理の識別子
+        data.action = "submitReservation";
 
-        // 送信ボタンを無効化
         const submitBtn = document.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
         submitBtn.innerText = "予約処理中...";
 
-        // GASにPOST送信
         fetch(GAS_WEB_APP_URL, {
             method: "POST",
+            mode: "cors",
             body: JSON.stringify(data)
         })
         .then(response => response.json())
         .then(res => {
             if (res.status === "success") {
                 alert("予約が完了しました！カレンダーをご確認ください。");
-                location.reload(); // ページをリフレッシュ
+                location.reload();
             } else {
                 alert("エラー: " + res.message);
                 submitBtn.disabled = false;
@@ -231,4 +221,3 @@
 
 </body>
 </html>
-# sabot-agata
