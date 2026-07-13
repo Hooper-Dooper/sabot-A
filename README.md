@@ -87,8 +87,8 @@
 </div>
 
 <script>
-    // ⚠️【注意】ここに現在デプロイされている最新のGASのウェブアプリURL（末尾が/execのもの）を貼り付けてください！
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwlj0_rS4O_zpSY_s8_X7aCqToxy3jUPjZNZUcBrbLSVz3IgHrxne0-zD9Q9BHtrWSn/exec";
+    // ⚠️【最重要】ここに新しくデプロイした最新のGASのURL（末尾が/execのもの）を貼り付けてください！
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyk9fVhgyqNItVlFqZPDKk5Yo654r0FSEeUPflluNcGbydSbvu27sRJ-WdccpJgfkY/exec";
 
     window.onload = function() {
         const urlParams = new URLSearchParams(window.location.search);
@@ -128,7 +128,6 @@
         }
     }
 
-    // ⚠️【ここを修正しました】通信エラーを回避するため、URLパラメータではなく特別な方法でリクエストを送ります
     function fetchAvailableTimes() {
         const date = document.getElementById('reservation-date').value;
         const userType = document.getElementById('user-type').value;
@@ -137,21 +136,27 @@
 
         if (!date) return;
 
-        container.innerHTML = '<span id="loading">空いている時間を調べています。すこし待ってね...</span>';
+        container.innerHTML = '<span id="loading">空いている時間を調べています。すこし待ね...</span>';
         document.getElementById('selected-time').value = "";
 
-        // 安全な通信URLを生成
         const url = `${GAS_WEB_APP_URL}?action=getSlots&date=${date}&userType=${userType}&resType=${reservationType}`;
 
         fetch(url, { method: "GET", mode: "cors" })
             .then(response => {
-                if (!response.ok) throw new Error('Network response was not ok');
+                if (!response.ok) throw new Error('Network error');
                 return response.json();
             })
             .then(data => {
                 container.innerHTML = "";
-                if (!data || data.length === 0 || data[0].time === "エラー") {
-                    container.innerHTML = `<span style='color:red;'>${(data[0] && data[0].message) || "全ての枠が埋まっています。"}</span>`;
+                
+                // ⚠️ GAS側でカレンダーエラーが発生した場合は、エラーメッセージを直接日本語で画面に出す
+                if (data && data.length === 1 && data[0].time === "エラー") {
+                    container.innerHTML = `<span style='color:red; font-weight:bold;'>❌ 設定エラー：${data[0].message}</span>`;
+                    return;
+                }
+
+                if (!data || data.length === 0) {
+                    container.innerHTML = "<span style='color:red;'>全ての枠が埋まっています。</span>";
                     return;
                 }
 
