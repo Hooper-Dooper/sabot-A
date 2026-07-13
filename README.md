@@ -87,7 +87,7 @@
 </div>
 
 <script>
-    // ⚠️【最重要】ここに現在デプロイされている最新のGASのURL（末尾が/execのもの）を貼り付けてください！
+    // ⚠️【注意】ここに現在デプロイされている最新のGASのウェブアプリURLを貼り付けてください！
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxBQEah1tZMWWbttkf8FcvrFfmcRbWjvaJJIr28MxWYHwHiiHgOBoCYCnSmS7fkTMRf/exec";
 
     window.onload = function() {
@@ -97,7 +97,7 @@
             document.getElementById('page-title').innerText = '就労継続支援B型 施設見学・体験 予約';
         } else {
             document.getElementById('user-type').value = 'A';
-            document.getElementById('page-title').innerText = '就労継続支援A型 施設見学・体験 予約';
+            document.getElementById('page-title').innerText = '施設見学・体験 予約';
         }
         
         const today = new Date();
@@ -141,7 +141,7 @@
 
         const url = `${GAS_WEB_APP_URL}?action=getSlots&date=${date}&userType=${userType}&resType=${reservationType}`;
 
-        fetch(url, { method: "GET" })
+        fetch(url)
             .then(response => {
                 if (!response.ok) throw new Error('Network error');
                 return response.json();
@@ -149,7 +149,7 @@
             .then(data => {
                 container.innerHTML = "";
                 
-                // ⚠️【ここを100%確実に修正】配列の最初の要素[0]をチェックするように直しました
+                // ⚠️【ここを完全に修正】[0] を追加し、GASのエラーメッセージを拾えるようにしました
                 if (data && data.length === 1 && data[0].time === "エラー") {
                     container.innerHTML = `<span style='color:red; font-weight:bold;'>❌ 設定エラー：${data[0].message}</span>`;
                     return;
