@@ -88,7 +88,7 @@
 
 <script>
     // ⚠️【注意】ここに現在デプロイされている最新のGASのウェブアプリURLを貼り付けてください！
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxBQEah1tZMWWbttkf8FcvrFfmcRbWjvaJJIr28MxWYHwHiiHgOBoCYCnSmS7fkTMRf/exec";
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxrdX5Tm7-WMcFSCqSK2P71rpsNjcWSlXT3vzlE5UgMkrUHzk2Ee5ZtwtdtFZuXXOHa/exec";
 
     window.onload = function() {
         const urlParams = new URLSearchParams(window.location.search);
