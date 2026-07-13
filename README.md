@@ -92,7 +92,7 @@
 
 <script>
     // ⚠️ここに【GASでデプロイしたウェブアプリのURL】を貼り付けてください
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwLzDbUmYQjYwft6g_tnM141XSShunqAU3RyXwjN8d1-ErcXWrSrlV81L4tvAny6kRc/exec";
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxNvtJFuvKvKnGWj_JPLwwYVfnzHimfQ8l9y2nWYgpOtT_Ee9KntvR35RknRjiaEasW/exec";
 
     // ページ読み込み時の初期設定 (A型・B型の判定)
     window.onload = function() {
