@@ -113,7 +113,13 @@ const lt=document.getElementById('loadingText');
 const el=document.getElementById('errorLog');
 const type=document.getElementById('reserveType').value;
 lt.style.display="block";el.style.display="none";ts.disabled=true;ts.innerHTML='<option value="">調べる中...</option>';
-fetch(`${GAS_URL}?action=check&date=${dateStr}&type=${encodeURIComponent(type)}`,{redirect:"follow"})
+// 送信用データを手動で集めることで、hiddenの「shopType」を確実に送信する
+const formData = new FormData(this);
+const shopTypeValue = document.querySelector('input[name="shopType"]').value;
+formData.set('shopType', shopTypeValue);
+
+fetch(GAS_URL,{method:"POST",body:new URLSearchParams(Object.fromEntries(formData.entries())),redirect:"follow"})
+
 .then(res=>{if(!res.ok)throw new Error("サーバー通信エラー");return res.json();})
 .then(slots=>{
 if(slots.status==="error")throw new Error(slots.message);
