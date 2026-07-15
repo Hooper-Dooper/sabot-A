@@ -167,35 +167,6 @@ dateInput.classList.add('has-value');
 fetchAvailableSlots(dateInput.value);
 // ★ここまで追加
 
-
-function handleTimeChange(select){if(select.value){select.classList.add('has-value');}else{select.classList.remove('has-value');}}
-function fetchAvailableSlots(dateStr){
-const ts=document.getElementById('reserveTime');
-const lt=document.getElementById('loadingText');
-const el=document.getElementById('errorLog');
-const type=document.getElementById('reserveType').value;
-lt.style.display="block";el.style.display="none";ts.disabled=true;ts.innerHTML='<option value="">調べる中...</option>';
-// 送信用データを手動で集めることで、hiddenの「shopType」を確実に送信する
-const formData = new FormData(this);
-const shopTypeValue = document.querySelector('input[name="shopType"]').value;
-formData.set('shopType', shopTypeValue);
-
-fetch(GAS_URL,{method:"POST",body:new URLSearchParams(Object.fromEntries(formData.entries())),redirect:"follow"})
-
-.then(res=>{if(!res.ok)throw new Error("サーバー通信エラー");return res.json();})
-.then(slots=>{
-if(slots.status==="error")throw new Error(slots.message);
-ts.innerHTML='<option value="">-- 時間枠を選んでください --</option>';
-slots.forEach(slot=>{
-const op=document.createElement('option');op.value=slot.start;
-if(slot.available){op.textContent=`${slot.start} ～ ${slot.end}`;}else{op.textContent=`× ${slot.start} ～ ${slot.end} (予定あり)`;op.disabled=true;}
-ts.appendChild(op);
-});
-ts.disabled=false;
-})
-.catch(err=>{ts.innerHTML='<option value="">エラー発生</option>';el.innerText="【エラー】: "+err.message;el.style.display="block";alert("取得失敗:\n"+err.message);})
-.finally(()=>{lt.style.display="none";});
-}
 // iPhoneの発火バグと時差・範囲無視を完璧に防ぐチェック処理
 let isChanging = false;
 dateInput.addEventListener('change', () => { isChanging = true; });
@@ -249,22 +220,42 @@ dateInput.addEventListener('blur', function() {
 });
 
 document.getElementById('reserveForm').addEventListener('submit',function(e){
-e.preventDefault();
-const btn=document.getElementById('submitBtn');
-const el=document.getElementById('errorLog');
-btn.disabled=true;btn.textContent="送信中...";el.style.display="none";
-fetch(GAS_URL,{method:"POST",body:new URLSearchParams(Object.fromEntries(new FormData(this).entries())),redirect:"follow"})
-.then(res=>{if(!res.ok)throw new Error("送信失敗");return res.json();})
-.then(result=>{
-if(result.status==="success"){
-alert("予約が完了しました！");this.reset();dateInput.classList.remove('has-value');
-const ts=document.getElementById('reserveTime');ts.classList.remove('has-value');
-ts.innerHTML='<option value="">-- 日にちを先に選んでください --</option>';ts.disabled=true;selectType('見学',1);
-}else{throw new Error(result.message||"予約処理エラー");}
-})
-.catch(err=>{el.innerText="【送信エラー】: "+err.message;el.style.display="block";alert("予約失敗:\n"+err.message);})
-.finally(()=>{btn.disabled=false;btn.textContent="この内容で予約する";});
+    e.preventDefault();
+    const btn=document.getElementById('submitBtn');
+    const el=document.getElementById('errorLog');
+    btn.disabled=true;btn.textContent="送信中...";el.style.display="none";
+    
+    // A型かB型かの識別データを確実に回収して送信する処理
+    const formData = new FormData(this);
+    const shopTypeElement = document.querySelector('input[name="shopType"]');
+    const shopTypeValue = shopTypeElement ? shopTypeElement.value : "A";
+    formData.set('shopType', shopTypeValue);
+    
+    fetch(GAS_URL,{method:"POST",body:new URLSearchParams(Object.fromEntries(formData.entries())),redirect:"follow"})
+    .then(res=>{if(!res.ok)throw new Error("送信失敗");return res.json();})
+    .then(result=>{
+        if(result.status==="success"){
+            alert("予約が完了しました！");
+            this.reset();
+            dateInput.classList.remove('has-value');
+            const ts=document.getElementById('reserveTime');ts.classList.remove('has-value');
+            ts.innerHTML='<option value="">-- 日にちを先に選んでください --</option>';ts.disabled=true;
+            selectType('見学',1);
+        }else{
+            throw new Error(result.message||"予約処理エラー");
+        }
+    })
+    .catch(err=>{
+        el.innerText="【送信エラー】: "+err.message;
+        el.style.display="block";
+        alert("予約失敗:\n"+err.message);
+    })
+    .finally(()=>{
+        btn.disabled=false;
+        btn.textContent="この内容で予約する";
+    });
 });
+
 </script>
 </body>
 </html>
