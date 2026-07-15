@@ -91,14 +91,76 @@ dateInput.min=`${minDate.getFullYear()}-${String(minDate.getMonth()+1).padStart(
 dateInput.max=`${maxDate.getFullYear()}-${String(maxDate.getMonth()+1).padStart(2,'0')}-${String(maxDate.getDate()).padStart(2,'0')}`;
 
 function selectType(type,hours){
-document.getElementById('reserveType').value=type;
-document.getElementById('duration').value=hours;
-document.getElementById('btn-visit').classList.toggle('selected',type==='見学');
-document.getElementById('btn-trial').classList.toggle('selected',type==='体験');
-const tf=document.getElementById('trialFields');
-if(type==='体験'){tf.style.display='block';}else{tf.style.display='none';const s=document.getElementById('desiredTask');s.value='';s.classList.remove('has-value');}
-if(dateInput.value)fetchAvailableSlots(dateInput.value);
+    document.getElementById('reserveType').value=type;
+    document.getElementById('duration').value=hours;
+    document.getElementById('btn-visit').classList.toggle('selected',type==='見学');
+    document.getElementById('btn-trial').classList.toggle('selected',type==='体験');
+    const tf=document.getElementById('trialFields');
+    const s=document.getElementById('desiredTask');
+    
+    if(type==='体験'){
+        tf.style.display='block';
+        s.disabled = false;
+    }else{
+        tf.style.display='none';
+        s.value='';
+        s.classList.remove('has-value');
+        s.disabled = true; 
+    }
+    if(dateInput.value) fetchAvailableSlots(dateInput.value);
 }
+
+function handleTimeChange(select){
+    if(select.value){
+        select.classList.add('has-value');
+    }else{
+        select.classList.remove('has-value');
+    }
+}
+
+function fetchAvailableSlots(dateStr){
+    const ts=document.getElementById('reserveTime');
+    const lt=document.getElementById('loadingText');
+    const el=document.getElementById('errorLog');
+    const type=document.getElementById('reserveType').value;
+    
+    // ★【追加】画面内にある hidden 要素から A型かB型かの値（A または B）を確実に取得する
+    const shopTypeInput = document.querySelector('input[name="shopType"]');
+    const shopType = shopTypeInput ? shopTypeInput.value : "A";
+    
+    lt.style.display="block";el.style.display="none";ts.disabled=true;ts.innerHTML='<option value="">調べる中...</option>';
+    
+    // ★【修正】URLの末尾に「&shopType=A」または「&shopType=B」が自動で付くようにしました
+    fetch(`${GAS_URL}?action=check&date=${dateStr}&type=${encodeURIComponent(type)}&shopType=${shopType}`,{redirect:"follow"})
+    .then(res=>{if(!res.ok)throw new Error("サーバー通信エラー");return res.json();})
+    .then(slots=>{
+        if(slots && slots.status === "error") throw new Error(slots.message);
+        
+        const slotArray = Array.isArray(slots) ? slots : (slots.data || []);
+        
+        ts.innerHTML='<option value="">-- 時間枠を選んでください --</option>';
+        slotArray.forEach(slot=>{
+            const op=document.createElement('option');
+            op.value=slot.start;
+            if(slot.available){
+                op.textContent=`${slot.start} ～ ${slot.end}`;
+            }else{
+                op.textContent=`× ${slot.start} ～ ${slot.end} (予定あり)`;
+                op.disabled=true;
+            }
+            ts.appendChild(op);
+        });
+        ts.disabled=false;
+    })
+    .catch(err=>{
+        ts.innerHTML='<option value="">エラー発生</option>';
+        el.innerText="【エラー】: "+err.message;
+        el.style.display="block";
+        alert("取得失敗:\n"+err.message);
+    })
+    .finally(()=>{lt.style.display="none";});
+}
+
 // ★ここから追加
 dateInput.value = dateInput.min;
 dateInput.classList.add('has-value');
